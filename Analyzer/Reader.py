@@ -6,7 +6,7 @@ class Reader():
     def __init__(self):
         root = tk.Tk()
         root.withdraw()
-        self.path = filedialog.askopenfilename()
+        self.path = filedialog.askopenfilenames()
 
     def open_explorer(self):
         return self.path

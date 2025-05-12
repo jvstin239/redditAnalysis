@@ -9,13 +9,25 @@ import time
 import datetime
 from tkinter import *
 from tkinter import messagebox
+from Analyzer.Reader import Reader
+from selenium.webdriver.support.ui import Select
+import os
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.keys import Keys
+import requests as r
+import pandas as pd
+import praw
+import pytz
+from selenium.webdriver.chrome.service import Service as ChromeService
 
 class Crawler():
+
     def getUserPosts(self, headless, user):
         options = Options()
         if headless == 1:
             options.add_argument("--headless")
-        driver = webdriver.Chrome(options = options)
+        driver = webdriver.Chrome(options = options,service=Service(ChromeDriverManager().install()))
         url = "https://old.reddit.com/user/" + user + "/submitted/?sort=new"
         posts = []
 
@@ -36,7 +48,7 @@ class Crawler():
             for post in soup.select(".thing"):
                 if post['data-type'] == "link":
                     subreddit = post['data-subreddit']
-                    caption = post.select(".title")[1].text
+                    caption = post.select(".title")[1].text.encode(encoding="utf-8")
                     upvotes = post["data-score"]
                     domain = post.select_one(".domain").select_one("a").text
                     if post["data-nsfw"] == "true":
@@ -230,11 +242,14 @@ class Crawler():
         return user_neu
 
     def get_top_captions_of_subreddit(self, subreddits, count):
-        driver = webdriver.Chrome()
+        print(subreddits)
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
         # daten = []
         captions = []
+        i = 0
         for subreddit in subreddits:
-            driver.get("https://old.reddit.com/r/" + subreddit + "/top/?t=month")
+            i = i + 1
+            driver.get("https://old.reddit.com/r/" + str(subreddit) + "/top/?t=month")
             time.sleep(0.5)
             if len(driver.find_elements(By.XPATH, "//button[@value='yes']")) != 0:
                 button = WebDriverWait(driver, 2).until(
@@ -251,12 +266,17 @@ class Crawler():
                     if len(captions) >= count*(subreddits.index(subreddit)+1):
                         break
                 try:
+                    if i%5 == 0:
+                        driver.execute_cdp_cmd('Storage.clearDataForOrigin', {
+                            "origin": '*',
+                            "storageTypes": 'all',
+                        })
                     next_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, "next-button")))
                     driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", next_button)
                     next_button.click()
                     time.sleep(0.8)
                 except:
-                    print("Next-Button nicht mehr auffindbar. Scraping bei " + subreddit)
+                    # print("Next-Button nicht mehr auffindbar. Scraping bei " + subreddit)
                     break
             # daten.append(captions)
 
@@ -264,7 +284,7 @@ class Crawler():
 
     def crawler_research(self, subredditlist, profilecount, cutstring):
         research_list = []
-        driver = webdriver.Chrome()
+        driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()))
         profiles = []
         cutstring.append("u_")
         cutstring.append("fan")
@@ -272,15 +292,15 @@ class Crawler():
         cutstring.append("arab")
         cutstring.append("spread")
         cutstring.append("pussy")
-        cutstring.append("vagina")
+        # cutstring.append("vagina")
         cutstring.append("hole")
-        cutstring.append("asshole")
+        # cutstring.append("asshole")
         cutstring.append("labia")
         cutstring.append("beef")
         cutstring.append("trans")
         cutstring.append("gay")
         cutstring.append("couple")
-        cutstring.append("asian")
+        # cutstring.append("asian")
         cutstring.append("anal")
         cutstring.append("hardcore")
         cutstring.append("blowjob")
@@ -289,12 +309,12 @@ class Crawler():
         cutstring.append("cum")
         cutstring.append("public")
         cutstring.append("riding")
-        cutstring.append("bdsm")
-        cutstring.append("fetish")
+        # cutstring.append("bdsm")
+        # cutstring.append("fetish")
         cutstring.append("grool")
-        cutstring.append("hair")
+        # cutstring.append("hair")
         cutstring.append("clit")
-        cutstring.append("porn")
+        # cutstring.append("porn")
         cutstring.append("fuck")
         for sub in subredditlist:
             i = 0
@@ -322,7 +342,7 @@ class Crawler():
                     time.sleep(0.8)
                 except:
                     break
-
+            n = 1
         for profile in profiles:
             driver.get("https://old.reddit.com/user/" + profile + "/submitted/?sort=new")
 
@@ -352,6 +372,17 @@ class Crawler():
                     time.sleep(0.8)
                 except:
                     break
+            n = n + 1
+            if n%5 == 0:
+                #driver.get('chrome://settings/clearBrowserData')
+                #time.sleep(0.3)
+                #driver.find_element("xpath", '//settings-ui').send_keys(Keys.TAB * 3 + Keys.ENTER)
+                #driver.delete_all_cookies()
+                #time.sleep(0.5)
+                driver.execute_cdp_cmd('Storage.clearDataForOrigin', {
+                    "origin": '*',
+                    "storageTypes": 'all',
+                })
         return research_list
 
     def checkSubReddits(self, subreddits):
@@ -384,7 +415,7 @@ class Crawler():
         cutstring.append("dick")
         cutstring.append("arab")
         cutstring.append("spread")
-        cutstring.append("pussy")
+        # cutstring.append("pussy")
         cutstring.append("vagina")
         cutstring.append("hole")
         cutstring.append("asshole")
@@ -393,21 +424,21 @@ class Crawler():
         cutstring.append("trans")
         cutstring.append("gay")
         cutstring.append("couple")
-        cutstring.append("asian")
+        # cutstring.append("asian")
         cutstring.append("anal")
         cutstring.append("hardcore")
         cutstring.append("blowjob")
         cutstring.append("sex")
-        cutstring.append("gone")
+        # cutstring.append("gone")
         cutstring.append("cum")
         cutstring.append("public")
         cutstring.append("riding")
-        cutstring.append("bdsm")
-        cutstring.append("fetish")
+        # cutstring.append("bdsm")
+        # cutstring.append("fetish")
         cutstring.append("grool")
-        cutstring.append("hair")
+        # cutstring.append("hair")
         cutstring.append("clit")
-        cutstring.append("porn")
+        # cutstring.append("porn")
         cutstring.append("fuck")
         cutstring.append("veri")
         cutstring.append("cuck")
@@ -417,13 +448,16 @@ class Crawler():
         result_list = []
         numbers = []
         onlines = []
-        driver = webdriver.Chrome()
+        driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()))
 
         for subreddit in subreddits:
             for string in cutstring:
                 if string in subreddit:
-                    subreddits.remove(subreddit)
-
+                    try:
+                        subreddits.remove(subreddit)
+                    except:
+                        continue
+            n = 1
         for subreddit in subreddits:
             url = "https://old.reddit.com/r/" + subreddit
             driver.get(url)
@@ -447,5 +481,256 @@ class Crawler():
             except:
                 subreddits.remove(subreddit)
                 continue
-            time.sleep(0.2)
+            time.sleep(0.5)
+            n = n + 1
+            if n%5==0:
+                #driver.get('chrome://settings/clearBrowserData')
+                #time.sleep(0.3)
+                #driver.find_element("xpath", '//settings-ui').send_keys(Keys.TAB * 3 + Keys.ENTER)
+                #driver.delete_all_cookies()
+                time.sleep(0.3)
+                driver.execute_cdp_cmd('Storage.clearDataForOrigin', {
+                    "origin": '*',
+                    "storageTypes": 'all',
+                })
+                time.sleep(0.2)
         return result_list, numbers, onlines
+    def convertMultipleGifs(self):
+        def is_download_complete(download_path, timeout=60):
+            seconds = 0
+            dl_wait = True
+            while dl_wait and seconds < timeout:
+                time.sleep(1)
+                dl_wait = False
+                for fname in os.listdir(download_path):
+                    if fname.endswith('.crdownload'):
+                        dl_wait = True
+                seconds += 1
+            return not dl_wait
+        options = Options()
+        options.add_argument("--headless=new")
+        rd = Reader()
+        paths = rd.path
+        print(paths)
+        if(len(paths) == 0): exit()
+        print(str(len(paths)) + " Gifs ausgewählt!")
+        for path in paths:
+            driver = webdriver.Chrome(options= options, service=ChromeService(ChromeDriverManager().install()))
+            driver.get('https://ezgif.com/video-to-gif')
+            WebDriverWait(driver, 2).until(
+                EC.element_to_be_clickable((By.XPATH, '/html/body/div[3]/div/div/div[3]/div/button'))).click()
+            time.sleep(1)
+            input_field = driver.find_element(By.ID, "new-image")
+            input_field.send_keys(path)
+            time.sleep(0.5)
+            WebDriverWait(driver,5).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="tsbt"]/input'))).click()
+            html = driver.page_source
+            soup = BeautifulSoup(html, 'html.parser')
+            dauer = float(soup.select_one("#end").get('value'))
+            if dauer > 12:
+                input_length = WebDriverWait(driver, 2).until(EC.presence_of_element_located((By.ID, 'end')))
+                input_length.clear()
+                time.sleep(0.1)
+                input_length.send_keys('12')
+                time.sleep(0.2)
+                dropdown = WebDriverWait(driver, 1).until(EC.visibility_of_element_located((By.ID, 'fps')))
+                select = Select(dropdown)
+                select.select_by_value('25')
+                time.sleep(0.2)
+            if dauer < 10:
+                dropdown = WebDriverWait(driver, 1).until(EC.visibility_of_element_located((By.ID, 'fps')))
+                select = Select(dropdown)
+                select.select_by_value('33')
+                time.sleep(0.2)
+            if dauer < 12 and dauer > 10:
+                dropdown = WebDriverWait(driver, 1).until(EC.visibility_of_element_located((By.ID, 'fps')))
+                select = Select(dropdown)
+                select.select_by_value('25')
+                time.sleep(0.2)
+
+            WebDriverWait(driver, 2).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="tsbt"]/input'))).click()
+            WebDriverWait(driver, 120).until(EC.presence_of_element_located((By.CLASS_NAME, 'outfile')))
+            time.sleep(0.5)
+            WebDriverWait(driver,2).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="output"]/table/tbody/tr[1]/td[4]/a/span/img'))).click()
+            time.sleep(5)
+            WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="tsbt"]/input'))).click()
+            time.sleep(5)
+            WebDriverWait(driver, 90).until(EC.element_to_be_clickable((By.CLASS_NAME, 'outfile')))
+            # link = driver.current_url
+            # new_link = link.replace("optimize", "save")
+            save_buttons = WebDriverWait(driver, 2).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'a.save')))
+            if len(save_buttons)>1: save_buttons[1].click()
+            else: save_buttons[0].click()
+            if is_download_complete('/Users/justinwild/Downloads'):
+                print("Gif " + str(paths.index(path)+1) + ' von ' + str(len(paths)) + " abgeschlossen")
+                os.rename(path, '/Users/justinwild/Library/CloudStorage/OneDrive-Persönlich/Business/Reddit/Content mit Tool konvertiert/' + os.path.basename(path))
+            else:
+                print("Download nicht innerhalb der Zeit abgeschlossen bei Gif: " + str(paths.index(path)))
+            driver.quit()
+
+    def get_captions_of_user(self, name, count):
+        options = Options()
+        # options.add_argument("--headless")
+        driver = webdriver.Chrome(options=options)
+        url = "https://old.reddit.com/user/" + name + "/submitted/?sort=new"
+        driver.get(url)
+        time.sleep(1)
+        # check ob user verfügbar ist
+        # try:
+        if len(driver.find_elements(By.XPATH, "//button[@value='yes']")) != 0:
+            button = WebDriverWait(driver, 2).until(EC.element_to_be_clickable((By.XPATH, "//button[@value='yes']")))
+            button.click()
+            time.sleep(0.5)
+
+        subreddits = []
+
+        html = driver.page_source
+        soup = BeautifulSoup(html, "html.parser")
+        for post in soup.select(".thing"):
+            if post['data-type'] == "link":
+                subreddit = post['data-subreddit']
+                if subreddit not in subreddits:
+                    subreddits.append(subreddit)
+        driver.close()
+        crawler = Crawler()
+        daten = crawler.get_top_captions_of_subreddit(subreddits, count)
+        return daten
+
+    def getCaptionsFromListInRightFormat(self):
+        #url = ("https://old.reddit.com/r/slightcellulite/top/?=month")
+        name = input("Wie soll die Datei heißen: ")
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Safari/537.36"
+        }
+        cookies = {
+            "over18": "1"
+        }
+        data = []
+        reader = Reader()
+        df = pd.read_csv(reader.open_explorer()[0], sep=";")
+
+        # Die erste Spalte als Array ausgeben
+        subreddits = df.iloc[:, 0].to_list()
+        for subreddit in subreddits:
+            if subreddit in data:
+                continue
+            captions = []
+            captions.append(subreddit)
+            url = "https://old.reddit.com/r/" + subreddit + "/top/?sort=top&t=month"
+            test = r.get(url, auth=('user', 'pass'), headers = headers, cookies = cookies)
+            if test.status_code != 200:
+                print(test.status_code)
+                print(test.headers)
+            soup = BeautifulSoup(test.text, 'html.parser')
+            for post in soup.select(".thing"):
+                # captions.append(post.select(".title")[1].text)
+                caption = post.select(".title")[1].text.encode("utf-8").decode("utf-8")
+                captions.append(caption)
+            data.append(captions)
+
+        df_final = pd.DataFrame(data, columns = None)
+        df_final.to_csv("/Users/justinwild/Downloads/" + name + ".csv" , index=False, sep=";", encoding="utf-8", header= False)
+
+    def getCaptionsViaApi(self):
+        name = input("Wie soll die Datei heißen: ")
+        count = int(input("Wie viele Captions: "))
+        client_id = 'DAlJUgd2j8X40RbqiMLGoQ'
+        client_secret = 'hvLZiFNOBgbNXscczD30zqgFgkRqvA'
+        user_agent = 'windows:my_reddit_bot:v1.0 (by /u/Jvstin239)'
+        reddit = praw.Reddit(client_id = client_id, client_secret = client_secret, user_agent = user_agent)
+        data = []
+        reader = Reader()
+        df = pd.read_csv(reader.open_explorer()[0], sep=";")
+
+        # Die erste Spalte als Array ausgeben
+        subreddits = df.iloc[:, 0].to_list()
+        # subreddit = reddit.subreddit("learnpython")
+        for subreddit in subreddits:
+            captions = []
+            captions.append(subreddit)
+            try:
+                for submission in reddit.subreddit(subreddit).top(time_filter="month", limit=count):
+                    captions.append(submission.title.encode("utf-8").decode("utf-8"))
+                data.append(captions)
+            except:
+                print("Subreddit " + subreddit + " nicht vorhanden")
+                continue
+
+        df_final = pd.DataFrame(data, columns=None)
+        df_final.to_csv("/Users/justinwild/Downloads/" + name + ".csv", index=False, sep=";", encoding="utf-8",
+                        header=False)
+
+    def getUserPostsViaAPI(self, user):
+        client_id = 'DAlJUgd2j8X40RbqiMLGoQ'
+        client_secret = 'hvLZiFNOBgbNXscczD30zqgFgkRqvA'
+        user_agent = 'windows:my_reddit_bot:v1.0 (by /u/Jvstin239)'
+        reddit = praw.Reddit(client_id=client_id, client_secret=client_secret, user_agent=user_agent)
+        redditor = reddit.redditor(user)
+        posts = []
+        for post in redditor.submissions.new(limit=None):
+            subreddit = post.subreddit.display_name
+            caption = post.title.encode("utf-8")
+            upvotes = post.score
+            domain = post.url
+            if post.over_18 == True:
+                nsfw = "NSFW"
+            else:
+                nsfw = "SFW"
+            zeittest = post.created_utc
+            utc_time = datetime.datetime.fromtimestamp(zeittest, tz=pytz.utc)
+            cet_time = utc_time.astimezone(pytz.timezone('Europe/Berlin'))
+            day = cet_time.date().strftime("%d.%m.%y")
+            hours = cet_time.time().strftime("%H:%M")
+            id = post.id
+            comments = post.num_comments
+            post_link = "https://www.reddit.com" + post.permalink
+            pinned = post.stickied
+            posts.append(
+                [pinned, id, str(day), str(hours), subreddit, upvotes, caption, comments, domain, post_link, nsfw])
+        return posts
+
+    def researchWithAPI(self):
+        client_id = 'DAlJUgd2j8X40RbqiMLGoQ'
+        client_secret = 'hvLZiFNOBgbNXscczD30zqgFgkRqvA'
+        user_agent = 'windows:my_reddit_bot:v1.0 (by /u/Jvstin239)'
+        reddit = praw.Reddit(client_id=client_id, client_secret=client_secret, user_agent=user_agent)
+        liste = []
+        userliste = []
+        research_result = []
+        model = input("Enter models name: ")
+        while True:
+            subreddit = input("Gib einen Subreddit ein oder 0 zum Start: ")
+            if subreddit == "0":
+                if len(liste) == 0:
+                    print("Es muss mindestens ein Subreddit eingegeben werden!")
+                else:
+                    break
+            else:
+                liste.append(subreddit)
+
+        count = input("Wie viele Profile sollen pro Subreddit gecrwalt werden: ")
+        count = int(count)
+        eingabe = input("Gebe 0 ein, wenn du Subreddits nach der Größe sortieren willst: ")
+        if (eingabe == "0"):
+            sortieren = True
+            size = int(input("Welche Größe soll ausgeschlossen werden: "))
+            online = int(input("Wie viele sollen aktiv online sein: "))
+
+
+
+    def getUserFromSubreddit(self, subreddit):
+        client_id = 'DAlJUgd2j8X40RbqiMLGoQ'
+        client_secret = 'hvLZiFNOBgbNXscczD30zqgFgkRqvA'
+        user_agent = 'windows:my_reddit_bot:v1.0 (by /u/Jvstin239)'
+        reddit = praw.Reddit(client_id=client_id, client_secret=client_secret, user_agent=user_agent)
+        userliste = []
+        sr = reddit.subreddit(subreddit)
+        for post in sr.new(limit=10000):
+            try:
+                if post.author.name not in userliste:
+                    userliste.append(post.author.name)
+            except:
+                continue
+
+        df = pd.DataFrame(userliste, columns = None)
+        df.to_csv("/Users/justinwild/Downloads/" + "subreddit_user_" + subreddit + ".csv", sep=";", encoding="utf-8", header=False, index = False)
